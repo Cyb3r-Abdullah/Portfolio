@@ -298,14 +298,23 @@
           body:JSON.stringify({name:n,email:email,message:m,_subject:`Portfolio Contact from ${n}`,_replyto:email,_template:'table',_captcha:'false'})
         });
         const data=await res.json().catch(()=>({}));
-        if(!res.ok||String(data.success)!=='true')throw new Error(data.message||'Send failed');
+        const serverMsg=String(data.message||'');
+        if(/activat/i.test(serverMsg)){
+          // FormSubmit's one-time setup: the site owner must click the activation link in their inbox.
+          formStatus.style.color='#fac45c';
+          formStatus.textContent='Contact form is being activated. Please try again shortly, or email '+emailAddr+' directly.';
+          console.warn('[FormSubmit]',serverMsg);
+          return;
+        }
+        if(!res.ok||String(data.success)!=='true')throw new Error(serverMsg||('HTTP '+res.status));
         formStatus.style.color='var(--green)';
         formStatus.textContent='✓ Message sent! I will get back to you soon.';
         form.reset();
       }catch(err){
         // Fallback: let the visitor send it themselves.
+        console.error('[FormSubmit]',err);
         formStatus.style.color='#ff7c88';
-        formStatus.textContent='Could not send automatically. Copy the message below or email '+emailAddr+' directly.';
+        formStatus.textContent=(location.protocol==='file:'?'Sending only works on the live website, not a local file. ':'Could not send automatically ('+(err&&err.message||'network error')+'). ')+'Copy the message below or email '+emailAddr+' directly.';
         preparedText.textContent=`Hello Abdullah,\n\n${m}\n\nBest regards,\n${n}\n${email}`;
         prepared.style.display='block';
         prepared.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'nearest'});
